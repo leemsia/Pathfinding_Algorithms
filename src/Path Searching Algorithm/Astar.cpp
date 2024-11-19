@@ -69,35 +69,35 @@ vector<pair<int, int>> astar(const vector<vector<int>>& grid, pair<int, int> sta
         }
 
         for (const auto& direction : directions) {
-        int new_row = current_node.first + direction.first;
-        int new_col = current_node.second + direction.second;
+            int new_row = current_node.first + direction.first;
+            int new_col = current_node.second + direction.second;
 
-        // 맵 경계 및 장애물 체크
-        if (new_row < 0 || new_col < 0 || new_row >= rows || new_col >= cols || grid[new_row][new_col] == 1) {
-            continue;
-        }
+            // 맵 경계 및 장애물 체크
+            if (new_row < 0 || new_col < 0 || new_row >= rows || new_col >= cols || grid[new_row][new_col] == 1) {
+                continue;
+            }
 
-        // === 대각선 이동 시 중간 장애물 체크 ===
-        if (abs(direction.first) == 1 && abs(direction.second) == 1) { // 대각선 방향
-            int intermediate_row = current_node.first + direction.first; // 세로 이동
-            int intermediate_col = current_node.second;                 // 가로 이동
-            int intermediate_col_alt = current_node.second + direction.second; // 대각선 이동의 두 경로
+            // === 대각선 이동 시 중간 장애물 체크 ===
+            if (abs(direction.first) == 1 && abs(direction.second) == 1) { // 대각선 방향
+                int intermediate_row = current_node.first + direction.first; // 세로 이동
+                int intermediate_col = current_node.second;                 // 가로 이동
+                int intermediate_col_alt = current_node.second + direction.second; // 대각선 이동의 두 경로
 
-            if (grid[intermediate_row][current_node.second] == 1 && grid[current_node.first][intermediate_col_alt] == 1) {
-                continue; // 중간 장애물이 있으면 대각선 이동 차단
+                if (grid[intermediate_row][current_node.second] == 1 && grid[current_node.first][intermediate_col_alt] == 1) {
+                    continue; // 중간 장애물이 있으면 대각선 이동 차단
+                }
+            }
+
+            // g-cost 계산
+            double new_g_cost = g_costs[current_node] + (abs(direction.first) + abs(direction.second) == 2 ? sqrt(2) : 1);
+
+            if (g_costs.find({new_row, new_col}) == g_costs.end() || new_g_cost < g_costs[{new_row, new_col}]) {
+                g_costs[{new_row, new_col}] = new_g_cost;
+                double f_cost = new_g_cost + heuristic({new_row, new_col}, goal);
+                pq.push({f_cost, {new_row, new_col}});
+                came_from[{new_row, new_col}] = current_node;
             }
         }
-
-        // g-cost 계산
-        double new_g_cost = g_costs[current_node] + (abs(direction.first) + abs(direction.second) == 2 ? sqrt(2) : 1);
-
-        if (g_costs.find({new_row, new_col}) == g_costs.end() || new_g_cost < g_costs[{new_row, new_col}]) {
-            g_costs[{new_row, new_col}] = new_g_cost;
-            double f_cost = new_g_cost + heuristic({new_row, new_col}, goal);
-            pq.push({f_cost, {new_row, new_col}});
-            came_from[{new_row, new_col}] = current_node;
-        }
-    }
 
     }
 

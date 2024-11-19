@@ -129,8 +129,8 @@ int main() {
     }
 
     // 디버깅용: 맵 출력
-    cout << "Generated Map:" << endl;
-    printMap(grid);
+    //cout << "Generated Map:" << endl;
+    //printMap(grid);
 
     // SFML 윈도우 생성
     sf::RenderWindow window(sf::VideoMode(GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE), "JPS Visualization");

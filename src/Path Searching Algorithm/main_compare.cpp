@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <sys/resource.h>
 
 using namespace std;
 
@@ -19,6 +20,12 @@ const int OBSTACLE_COUNT = 100;
 vector<vector<int>> grid;
 pair<int, int> start = {0, 0};
 pair<int, int> goal = {29, 29};
+
+void printMemoryUsage(const std::string& algorithmName) {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    std::cout << algorithmName << " Memory usage: " << usage.ru_maxrss / 1024.0 << " MB" << std::endl;
+}
 
 // 랜덤 맵 생성 함수
 vector<vector<int>> generateRandomMap(int rows, int cols, int obstacleCount) {
@@ -111,15 +118,44 @@ void animatePath(sf::RenderWindow& window, const vector<pair<int, int>>& path, c
         this_thread::sleep_for(chrono::milliseconds(100));
     }
 }
+// === 알고리즘 실행 및 결과 출력 함수 ===
+vector<pair<int, int>> executeAlgorithm(
+    const string& algorithmName,
+    vector<pair<int, int>> (*algorithm)(const vector<vector<int>>&, pair<int, int>, pair<int, int>),
+    sf::Color pathColor,
+    sf::RenderWindow& window
+) {
+    // 알고리즘 실행
+    auto startTime = chrono::high_resolution_clock::now();
+    vector<pair<int, int>> path = algorithm(grid, start, goal);
+    auto endTime = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::microseconds>(endTime - startTime).count();
 
+    // 결과 출력
+    cout << algorithmName << " 경로 길이: " << path.size()
+         << ", 실행 시간: " << duration / 1000.0 << " ms" << endl;
+
+    printMemoryUsage(algorithmName);
+
+    // 애니메이션 실행
+    displayAlgorithmName(window, algorithmName);
+    animatePath(window, path, pathColor);
+
+    return path;
+}
+
+// === 메인 함수 ===
 int main() {
+    // 랜덤 맵 생성
     grid = generateRandomMap(GRID_ROWS, GRID_COLS, OBSTACLE_COUNT);
 
+    // 시작점과 목표점 유효성 검사
     if (grid[start.first][start.second] == 1 || grid[goal.first][goal.second] == 1) {
         cout << "Error: Start or Goal position is blocked!" << endl;
         return 1;
     }
 
+    // 디버깅용: 맵 출력
     cout << "Generated Map:" << endl;
     for (const auto& row : grid) {
         for (const auto& cell : row) {
@@ -129,25 +165,8 @@ int main() {
     }
     cout << endl;
 
+    // SFML 윈도우 생성
     sf::RenderWindow window(sf::VideoMode(GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE + 50), "Pathfinding Visualization");
-
-    auto startTime = chrono::high_resolution_clock::now();
-    vector<pair<int, int>> jpsPath = jps(grid, start, goal);
-    auto endTime = chrono::high_resolution_clock::now();
-    auto jpsDuration = chrono::duration_cast<chrono::microseconds>(endTime - startTime).count();
-    cout << "JPS 경로 길이: " << jpsPath.size() << ", 실행 시간: " << jpsDuration / 1000.0 << " ms" << endl;
-
-    startTime = chrono::high_resolution_clock::now();
-    vector<pair<int, int>> dijkstraPath = dijkstra(grid, start, goal);
-    endTime = chrono::high_resolution_clock::now();
-    auto dijkstraDuration = chrono::duration_cast<chrono::microseconds>(endTime - startTime).count();
-    cout << "Dijkstra 경로 길이: " << dijkstraPath.size() << ", 실행 시간: " << dijkstraDuration / 1000.0 << " ms" << endl;
-
-    startTime = chrono::high_resolution_clock::now();
-    vector<pair<int, int>> aStarPath = astar(grid, start, goal);
-    endTime = chrono::high_resolution_clock::now();
-    auto aStarDuration = chrono::duration_cast<chrono::microseconds>(endTime - startTime).count();
-    cout << "A* 경로 길이: " << aStarPath.size() << ", 실행 시간: " << aStarDuration / 1000.0 << " ms" << endl;
 
     while (window.isOpen()) {
         sf::Event event;
@@ -157,14 +176,10 @@ int main() {
             }
         }
 
-        displayAlgorithmName(window, "Dijkstra");
-        animatePath(window, dijkstraPath, sf::Color::Yellow);
-
-        displayAlgorithmName(window, "A*");
-        animatePath(window, aStarPath, sf::Color::Cyan);
-
-        displayAlgorithmName(window, "JPS");
-        animatePath(window, jpsPath, sf::Color::Green);
+        // 알고리즘 실행 및 시각화
+        executeAlgorithm("Dijkstra", dijkstra, sf::Color::Yellow, window);
+        executeAlgorithm("A*", astar, sf::Color::Cyan, window);
+        executeAlgorithm("JPS", jps, sf::Color::Green, window);
 
         break; // 애니메이션 실행 후 종료
     }
