@@ -61,6 +61,12 @@ pair<int, int> jump(const vector<vector<int>>& grid, pair<int, int> current, pai
 
         // === 대각선 이동 중 추가 점프 ===
         if (dx != 0 && dy != 0) {
+            // 수평 및 수직 경로가 모두 유효한지 검사
+            if (grid[x - dx][y] == 1 && grid[x][y - dy] == 1) {
+                return {-1, -1}; // 대각선 이동 불가
+            }
+
+            // 수평 또는 수직 방향의 점프 포인트 확인
             auto next_jump_x = jump(grid, {x, y}, {dx, 0}, goal);
             auto next_jump_y = jump(grid, {x, y}, {0, dy}, goal);
 

@@ -3,25 +3,49 @@
 #include <vector>
 #include <thread>
 #include <chrono>
-
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
-const int CELL_SIZE = 50;
-const int GRID_ROWS = 5;
-const int GRID_COLS = 5;
+const int CELL_SIZE = 20;
 
-// 맵 데이터
-vector<vector<int>> grid = {
-    {0, 0, 0, 0, 0},
-    {0, 1, 1, 1, 0},
-    {0, 0, 0, 1, 0},
-    {0, 1, 0, 0, 0},
-    {0, 0, 0, 0, 0}
-};
+int GRID_ROWS; // 사용자 입력으로 설정
+int GRID_COLS; // 사용자 입력으로 설정
+int OBSTACLE_COUNT; // 사용자 입력으로 설정
 
-pair<int, int> start = {0, 0};
-pair<int, int> goal = {4, 4};
+vector<vector<int>> grid;
+pair<int, int> start;
+pair<int, int> goal;
+
+// 랜덤 맵 생성 함수
+vector<vector<int>> generateRandomMap(int rows, int cols, int obstacleCount) {
+    vector<vector<int>> grid(rows, vector<int>(cols, 0));
+    srand(time(0)); // 랜덤 시드 설정
+
+    while (obstacleCount > 0) {
+        int r = rand() % rows;
+        int c = rand() % cols;
+
+        if (grid[r][c] == 0) { // 이미 장애물이 없는 곳만 선택
+            grid[r][c] = 1; // 장애물 배치
+            --obstacleCount;
+        }
+    }
+    return grid;
+}
+
+// 맵 출력 함수
+void printMap(const vector<vector<int>>& grid) {
+    for (const auto& row : grid) {
+        for (const auto& cell : row) {
+            cout << (cell == 1 ? '#' : '.') << " ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
 
 void drawGrid(sf::RenderWindow& window) {
     for (int row = 0; row < GRID_ROWS; ++row) {
@@ -80,6 +104,33 @@ void animatePath(sf::RenderWindow& window, const vector<pair<int, int>>& path) {
 
 
 int main() {
+    // 사용자 입력 받기
+    cout << "Enter grid size (rows cols): ";
+    cin >> GRID_ROWS >> GRID_COLS;
+
+    cout << "Enter number of obstacles: ";
+    cin >> OBSTACLE_COUNT;
+
+    cout << "Enter start position (row col): ";
+    cin >> start.first >> start.second;
+
+    cout << "Enter goal position (row col): ";
+    cin >> goal.first >> goal.second;
+
+    // 랜덤 맵 생성
+    grid = generateRandomMap(GRID_ROWS, GRID_COLS, OBSTACLE_COUNT);
+
+    // 시작점과 목표점 유효성 검사
+    if (grid[start.first][start.second] == 1 || grid[goal.first][goal.second] == 1) {
+        cout << "Error: Start or Goal position is blocked!" << endl;
+        return 1;
+    }
+
+    // 디버깅용: 맵 출력
+    cout << "Generated Map:" << endl;
+    printMap(grid);
+
+    // SFML 윈도우 생성
     sf::RenderWindow window(sf::VideoMode(GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE), "JPS Visualization");
 
     while (window.isOpen()) {
