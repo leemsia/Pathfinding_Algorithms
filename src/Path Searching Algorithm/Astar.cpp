@@ -1,15 +1,18 @@
+#include "Astar.h"
+#include "heuristic.h"
 #include <iostream>
 #include <vector>
 #include <queue>
 #include <unordered_map>
 #include <cmath>
-#include <utility>
 #include <limits>
+#include <utility>
+#include <algorithm>
 
 using namespace std;
 
-// 해시 함수 정의
-struct hash_pair {
+// 사용자 정의 해시 함수
+struct pair_hash {
     template <class T1, class T2>
     size_t operator()(const pair<T1, T2>& p) const {
         auto hash1 = hash<T1>{}(p.first);
@@ -18,58 +21,90 @@ struct hash_pair {
     }
 };
 
+/*
 // 두 좌표 사이의 유클리드 거리 (휴리스틱)
 double heuristic(pair<int, int> node1, pair<int, int> node2) {
     int x1 = node1.first, y1 = node1.second;
     int x2 = node2.first, y2 = node2.second;
-    return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 -  y2));
+    return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
+*/
 
-// A* 알고리즘
-pair<vector<pair<int, int>>, double> a_star(
-    const unordered_map<pair<int, int>, vector<pair<pair<int, int>, int>>, hash_pair>& graph,
-    pair<int, int> start, pair<int, int> goal) {
-        unordered_map<pair<int, int>, double, hash_pair> g_costs;
-        unordered_map<pair<int, int>, pair<int, int>, hash_pair> came_from;
+// A* 알고리즘 (그리드 기반)
+vector<pair<int, int>> astar(const vector<vector<int>>& grid, pair<int, int> start, pair<int, int> goal) {
+    int rows = grid.size();
+    int cols = grid[0].size();
 
-        for (const auto& node : graph) {
-            g_costs[node.first] = numeric_limits<double>::infinity();
-        }
-        g_costs[start] = 0;
+    // 각 노드의 g-cost 저장
+    unordered_map<pair<int, int>, double, pair_hash> g_costs;
+    unordered_map<pair<int, int>, pair<int, int>, pair_hash> came_from;
 
-    // 우선순위 큐 선언
-    priority_queue<pair<double, pair<int, int>>, vector<pair<double, pair<int, int>>>, greater<pair<double, pair<int, int>>>> pq;
-    pq.push({0, start});
+    // 초기화
+    g_costs[start] = 0;
+
+    // 우선순위 큐
+    priority_queue<pair<double, pair<int, int>>, vector<pair<double, pair<int, int>>>, greater<>> pq;
+    pq.push({heuristic(start, goal), start});
+
+    // 이동 가능한 방향
+    vector<pair<int, int>> directions = {
+        {-1, 0}, {1, 0}, {0, -1}, {0, 1}, // 상하좌우
+        {-1, -1}, {1, 1}, {1, -1}, {-1, 1} // 대각선
+    };
 
     while (!pq.empty()) {
         auto [current_f_cost, current_node] = pq.top();
         pq.pop();
 
         if (current_node == goal) {
+            // 목표 도달 시 경로 추적
             vector<pair<int, int>> path;
-            double total_cost = g_costs[goal]; // 최단 경로의 총 가중치
             while (came_from.find(current_node) != came_from.end()) {
                 path.push_back(current_node);
                 current_node = came_from[current_node];
             }
             path.push_back(start);
             reverse(path.begin(), path.end());
-            return {path, total_cost};
+            return path;
         }
 
-        for (const auto& [neighbor, cost] : graph.at(current_node)) {
-            double tentative_g_cost = g_costs[current_node] + cost;
-            if (tentative_g_cost < g_costs[neighbor]) {
-                g_costs[neighbor] = tentative_g_cost;
-                double f_cost = tentative_g_cost + heuristic(neighbor, goal);
-                pq.push({f_cost, neighbor});
-                came_from[neighbor] = current_node;
+        for (const auto& direction : directions) {
+        int new_row = current_node.first + direction.first;
+        int new_col = current_node.second + direction.second;
+
+        // 맵 경계 및 장애물 체크
+        if (new_row < 0 || new_col < 0 || new_row >= rows || new_col >= cols || grid[new_row][new_col] == 1) {
+            continue;
+        }
+
+        // === 대각선 이동 시 중간 장애물 체크 ===
+        if (abs(direction.first) == 1 && abs(direction.second) == 1) { // 대각선 방향
+            int intermediate_row = current_node.first + direction.first; // 세로 이동
+            int intermediate_col = current_node.second;                 // 가로 이동
+            int intermediate_col_alt = current_node.second + direction.second; // 대각선 이동의 두 경로
+
+            if (grid[intermediate_row][current_node.second] == 1 && grid[current_node.first][intermediate_col_alt] == 1) {
+                continue; // 중간 장애물이 있으면 대각선 이동 차단
             }
         }
+
+        // g-cost 계산
+        double new_g_cost = g_costs[current_node] + (abs(direction.first) + abs(direction.second) == 2 ? sqrt(2) : 1);
+
+        if (g_costs.find({new_row, new_col}) == g_costs.end() || new_g_cost < g_costs[{new_row, new_col}]) {
+            g_costs[{new_row, new_col}] = new_g_cost;
+            double f_cost = new_g_cost + heuristic({new_row, new_col}, goal);
+            pq.push({f_cost, {new_row, new_col}});
+            came_from[{new_row, new_col}] = current_node;
+        }
     }
-    return {{}, numeric_limits<double>::infinity()}; // 경로가 없는 경우
+
+    }
+
+    return {}; // 경로가 없는 경우
 }
 
+/*
 int main() {
     // 그래프 정의
     unordered_map<pair<int, int>, vector<pair<pair<int, int>, int>>, hash_pair> graph;
@@ -93,3 +128,4 @@ int main() {
 
     return 0;
 }
+*/

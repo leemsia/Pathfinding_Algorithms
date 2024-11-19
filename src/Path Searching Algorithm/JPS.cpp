@@ -1,4 +1,5 @@
 #include "JPS.h"
+#include "heuristic.h"
 #include <iostream>
 #include <vector>
 #include <queue>
@@ -18,12 +19,14 @@ struct pair_hash {
     }
 };
 
+/*
 // === 휴리스틱 함수 ===
 double heuristic(pair<int, int> node1, pair<int, int> node2) {
     int x1 = node1.first, y1 = node1.second;
     int x2 = node2.first, y2 = node2.second;
     return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
 }
+*/
 
 // === 점프 함수 ===
 pair<int, int> jump(const vector<vector<int>>& grid, pair<int, int> current, pair<int, int> direction, pair<int, int> goal) {

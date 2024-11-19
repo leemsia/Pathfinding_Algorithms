@@ -1,3 +1,5 @@
+#include "dijkstra.h"
+#include "astar.h"
 #include "JPS.h"
 #include <SFML/Graphics.hpp>
 #include <vector>
